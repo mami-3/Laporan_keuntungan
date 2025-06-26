@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>laporan keungan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #eef2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      color: #333;
+    }
+    input, button {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-right: 10px;
+      margin-top: 5px;
+    }
+    button {
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      border: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📥 Laporan Pemasukan</h2>
+    <div class="section">
+      <input type="date" id="tglMasuk">
+      <input type="text" placeholder="Keterangan" id="ketMasuk">
+      <input type="number" placeholder="Jumlah (Rp)" id="jmlMasuk">
+      <button type="button" onclick="tambahData('pemasukan')">Tambah</button>
+      <table>
+        <thead>
+          <tr><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="tabelMasuk"></tbody>
+      </table>
+      <strong>Total Pemasukan: Rp <span id="totalMasuk">0</span></strong>
+    </div>
+
+    <h2>📤 Laporan Pengeluaran</h2>
+    <div class="section">
+      <input type="date" id="tglKeluar">
+      <input type="text" placeholder="Keterangan" id="ketKeluar">
+      <input type="number" placeholder="Jumlah (Rp)" id="jmlKeluar">
+      <button type="button" onclick="tambahData('pengeluaran')">Tambah</button>
+      <table>
+        <thead>
+          <tr><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="tabelKeluar"></tbody>
+      </table>
+      <strong>Total Pengeluaran: Rp <span id="totalKeluar">0</span></strong>
+    </div>
+
+    <h2>📊 Ringkasan Omset</h2>
+    <div class="section" id="ringkasanOmset"></div>
+
+    <h2>💰 Total Laba</h2>
+    <div class="section">
+      <strong>Rp <span id="totalLaba">0</span></strong>
+    </div>
+  </div>
+
+  <script>
+    let data = {
+      pemasukan: JSON.parse(localStorage.getItem('pemasukan')) || [],
+      pengeluaran: JSON.parse(localStorage.getItem('pengeluaran')) || []
+    };
+
+    function simpan() {
+      localStorage.setItem('pemasukan', JSON.stringify(data.pemasukan));
+      localStorage.setItem('pengeluaran', JSON.stringify(data.pengeluaran));
+    }
+
+    function tambahData(tipe) {
+      const tgl = document.getElementById(`tgl${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value;
+      const ket = document.getElementById(`ket${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value.trim();
+      const jml = parseInt(document.getElementById(`jml${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value);
+
+      if (!tgl || !ket || isNaN(jml) || jml <= 0) {
+        alert("Mohon isi semua kolom dengan benar dan jumlah harus lebih dari 0!");
+        return;
+      }
+
+      data[tipe].push({ tgl, ket, jml });
+      simpan();
+      
+    async function loadData() {
+      const dbRef = firebaseChild(firebaseRef(firebaseDB), '/');
+      try {
+        const snapshot = await firebaseGet(dbRef);
+        if (snapshot.exists()) {
+          data = snapshot.val();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      render();
+    }
+
+    function simpan() {
+      firebaseSet(firebaseRef(firebaseDB, '/'), data);
+    }
+
+    window.addEventListener('load', loadData);
+
+      document.getElementById(`tgl${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value = '';
+      document.getElementById(`ket${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value = '';
+      document.getElementById(`jml${tipe === 'pemasukan' ? 'Masuk' : 'Keluar'}`).value = '';
+    }
+
+    function editData(tipe, index) {
+      const item = data[tipe][index];
+      const tglBaru = prompt("Tanggal baru:", item.tgl);
+      const ketBaru = prompt("Keterangan baru:", item.ket);
+      const jmlBaru = prompt("Jumlah baru:", item.jml);
+
+      if (!tglBaru || !ketBaru || isNaN(parseInt(jmlBaru)) || parseInt(jmlBaru) <= 0) {
+        alert("Data tidak valid!");
+        return;
+      }
+
+      data[tipe][index] = { tgl: tglBaru, ket: ketBaru, jml: parseInt(jmlBaru) };
+      simpan();
+      
+    async function loadData() {
+      const dbRef = firebaseChild(firebaseRef(firebaseDB), '/');
+      try {
+        const snapshot = await firebaseGet(dbRef);
+        if (snapshot.exists()) {
+          data = snapshot.val();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      render();
+    }
+
+    function simpan() {
+      firebaseSet(firebaseRef(firebaseDB, '/'), data);
+    }
+
+    window.addEventListener('load', loadData);
+
+    }
+
+    function hapusData(tipe, index) {
+      if (confirm("Yakin hapus data ini?")) {
+        data[tipe].splice(index, 1);
+        simpan();
+        
+    async function loadData() {
+      const dbRef = firebaseChild(firebaseRef(firebaseDB), '/');
+      try {
+        const snapshot = await firebaseGet(dbRef);
+        if (snapshot.exists()) {
+          data = snapshot.val();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      render();
+    }
+
+    function simpan() {
+      firebaseSet(firebaseRef(firebaseDB, '/'), data);
+    }
+
+    window.addEventListener('load', loadData);
+
+      }
+    }
+
+    function hitungTotal(tipe) {
+      return data[tipe].reduce((sum, d) => sum + d.jml, 0);
+    }
+
+    function render() {
+      const masukHTML = data.pemasukan.map((d, i) => 
+        `<tr>
+          <td>${d.tgl}</td>
+          <td>${d.ket}</td>
+          <td>Rp ${d.jml.toLocaleString()}</td>
+          <td>
+            <button onclick="editData('pemasukan', ${i})">Edit</button>
+            <button onclick="hapusData('pemasukan', ${i})">Hapus</button>
+          </td>
+        </tr>`).join("");
+      document.getElementById('tabelMasuk').innerHTML = masukHTML;
+      document.getElementById('totalMasuk').textContent = hitungTotal('pemasukan').toLocaleString();
+
+      const keluarHTML = data.pengeluaran.map((d, i) => 
+        `<tr>
+          <td>${d.tgl}</td>
+          <td>${d.ket}</td>
+          <td>Rp ${d.jml.toLocaleString()}</td>
+          <td>
+            <button onclick="editData('pengeluaran', ${i})">Edit</button>
+            <button onclick="hapusData('pengeluaran', ${i})">Hapus</button>
+          </td>
+        </tr>`).join("");
+      document.getElementById('tabelKeluar').innerHTML = keluarHTML;
+      document.getElementById('totalKeluar').textContent = hitungTotal('pengeluaran').toLocaleString();
+
+      document.getElementById('totalLaba').textContent = (hitungTotal('pemasukan') - hitungTotal('pengeluaran')).toLocaleString();
+
+      tampilOmsetRingkasan();
+    }
+
+    function tampilOmsetRingkasan() {
+      const now = new Date();
+      const ringkasan = { harian: 0, bulanan: {}, tahunan: 0 };
+      const pemasukan = data.pemasukan;
+
+      pemasukan.forEach(item => {
+        const tgl = new Date(item.tgl);
+        const selisihHari = (now - tgl) / (1000 * 3600 * 24);
+
+        if (selisihHari <= 2) ringkasan.harian += item.jml;
+
+        const bln = `${tgl.getFullYear()}-${String(tgl.getMonth() + 1).padStart(2, '0')}`;
+        ringkasan.bulanan[bln] = (ringkasan.bulanan[bln] || 0) + item.jml;
+
+        if (tgl.getFullYear() === now.getFullYear()) ringkasan.tahunan += item.jml;
+      });
+
+      const bulananSorted = Object.entries(ringkasan.bulanan).sort(([a], [b]) => a.localeCompare(b)).slice(-3);
+      const bulananStr = bulananSorted.map(([bln, jml]) => `<li>${bln}: Rp ${jml.toLocaleString()}</li>`).join("");
+
+      document.getElementById('ringkasanOmset').innerHTML = `
+        <ul>
+          <li><strong>Omset Harian (3 hari):</strong> Rp ${ringkasan.harian.toLocaleString()}</li>
+          <li><strong>Omset Bulanan (3 terakhir):</strong><ul>${bulananStr}</ul></li>
+          <li><strong>Omset Tahunan:</strong> Rp ${ringkasan.tahunan.toLocaleString()}</li>
+        </ul>`;
+    }
+
+    
+    async function loadData() {
+      const dbRef = firebaseChild(firebaseRef(firebaseDB), '/');
+      try {
+        const snapshot = await firebaseGet(dbRef);
+        if (snapshot.exists()) {
+          data = snapshot.val();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      render();
+    }
+
+    function simpan() {
+      firebaseSet(firebaseRef(firebaseDB, '/'), data);
+    }
+
+    window.addEventListener('load', loadData);
+
+  </script>
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDjx5JQhxAj-_V_D0nhq_KynU8Fus2dL14",
+    authDomain: "laporankeuangan-92277.firebaseapp.com",
+    databaseURL: "https://laporankeuangan-92277-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "laporankeuangan-92277",
+    storageBucket: "laporankeuangan-92277.firebasestorage.app",
+    messagingSenderId: "719500961350",
+    appId: "1:719500961350:web:b015494bceea27f230cc47",
+    measurementId: "G-HHL8D99MLK"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window.firebaseDB = db;
+  window.firebaseRef = ref;
+  window.firebaseSet = set;
+  window.firebaseGet = get;
+  window.firebaseChild = child;
+  window.firebaseOnValue = onValue;
+</script>
+
+</body>
+</html>
